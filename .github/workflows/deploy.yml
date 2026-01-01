@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - master
+      - claude/ising-model-simulator-8B8l8
   workflow_dispatch:
 
 permissions:
