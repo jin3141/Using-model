@@ -6,7 +6,7 @@ import {
   monteCarloStep,
   calculateMagnetization,
   calculateEnergy,
-  SpinGrid as SpinGridType,
+  type SpinGrid as SpinGridType,
 } from '../isingSimulation';
 
 const IsingModel: React.FC = () => {
@@ -25,7 +25,7 @@ const IsingModel: React.FC = () => {
   const [magnetization, setMagnetization] = useState(0);
   const [energy, setEnergy] = useState(0);
 
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | undefined>(undefined);
   const lastUpdateRef = useRef<number>(0);
 
   // Calculate cell size based on grid size

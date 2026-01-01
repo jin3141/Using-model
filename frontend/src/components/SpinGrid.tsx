@@ -1,5 +1,5 @@
 import React from 'react';
-import { SpinGrid as SpinGridType } from '../isingSimulation';
+import { type SpinGrid as SpinGridType } from '../isingSimulation';
 
 interface SpinGridProps {
   grid: SpinGridType;
