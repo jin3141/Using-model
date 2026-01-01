@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import SpinGrid from './SpinGrid';
 import HeisenbergGrid from './HeisenbergGrid';
+import PhaseTransitionPlot from './PhaseTransitionPlot';
 import {
   initializeGrid,
   initializeOrderedGrid,
@@ -17,6 +18,12 @@ import {
   calculateHeisenbergEnergy,
   type HeisenbergGrid as HeisenbergGridType,
 } from '../heisenbergSimulation';
+import {
+  performIsingTemperatureSweep,
+  performHeisenbergTemperatureSweep,
+  generateTemperatureRange,
+  type PhaseTransitionData,
+} from '../phaseTransition';
 
 type ModelType = 'ising' | 'heisenberg';
 
@@ -45,6 +52,11 @@ const SpinModelSimulator: React.FC = () => {
   // Statistics
   const [magnetization, setMagnetization] = useState(0);
   const [energy, setEnergy] = useState(0);
+
+  // Phase transition analysis
+  const [phaseTransitionData, setPhaseTransitionData] = useState<PhaseTransitionData[]>([]);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState({ current: 0, total: 0 });
 
   const animationRef = useRef<number | undefined>(undefined);
   const lastUpdateRef = useRef<number>(0);
@@ -195,6 +207,46 @@ const SpinModelSimulator: React.FC = () => {
     setModelType(newModel);
     setStepCount(0);
     setIsRunning(false);
+  };
+
+  // Run phase transition analysis
+  const handleRunAnalysis = async () => {
+    setIsAnalyzing(true);
+    setIsRunning(false);
+
+    const analysisGridSize = isMobile ? 20 : 30; // Smaller grid for faster analysis
+    const temperatures = generateTemperatureRange(0.5, 4.0, isMobile ? 15 : 25);
+    const equilibrationSteps = isMobile ? 200 : 500;
+    const measurementSteps = isMobile ? 20 : 50;
+
+    try {
+      let results: PhaseTransitionData[];
+
+      if (modelType === 'ising') {
+        results = await performIsingTemperatureSweep(
+          analysisGridSize,
+          temperatures,
+          equilibrationSteps,
+          measurementSteps,
+          J,
+          (current, total) => setAnalysisProgress({ current, total })
+        );
+      } else {
+        results = await performHeisenbergTemperatureSweep(
+          analysisGridSize,
+          temperatures,
+          equilibrationSteps,
+          measurementSteps,
+          J,
+          (current, total) => setAnalysisProgress({ current, total })
+        );
+      }
+
+      setPhaseTransitionData(results);
+    } finally {
+      setIsAnalyzing(false);
+      setAnalysisProgress({ current: 0, total: 0 });
+    }
   };
 
   const totalSpins = gridSize * gridSize;
@@ -449,6 +501,48 @@ const SpinModelSimulator: React.FC = () => {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Phase Transition Analysis */}
+      <div style={{ marginTop: '40px' }}>
+        <h2 style={{ fontSize: isMobile ? '1.3em' : '1.5em' }}>Phase Transition Analysis</h2>
+        <div style={{ marginBottom: '20px' }}>
+          <button
+            onClick={handleRunAnalysis}
+            disabled={isAnalyzing || isRunning}
+            style={{
+              padding: '12px 24px',
+              fontSize: isMobile ? '14px' : '16px',
+              cursor: isAnalyzing || isRunning ? 'not-allowed' : 'pointer',
+              backgroundColor: isAnalyzing ? '#999' : '#FF9800',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              opacity: isAnalyzing || isRunning ? 0.6 : 1,
+            }}
+          >
+            {isAnalyzing
+              ? `Analyzing... ${analysisProgress.current}/${analysisProgress.total}`
+              : 'Run Temperature Sweep'}
+          </button>
+          <div style={{ fontSize: '12px', color: '#666', marginTop: '8px' }}>
+            {isAnalyzing ? (
+              <div>
+                Computing magnetization at different temperatures. This may take a minute...
+              </div>
+            ) : (
+              <div>
+                Measure magnetization across temperatures to observe phase transition behavior.
+                {isMobile && ' (Using smaller grid for faster computation on mobile)'}
+              </div>
+            )}
+          </div>
+        </div>
+        <PhaseTransitionPlot
+          data={phaseTransitionData}
+          modelType={modelType}
+          windowWidth={windowWidth}
+        />
       </div>
     </div>
   );
