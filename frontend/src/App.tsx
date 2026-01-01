@@ -1,10 +1,10 @@
-import IsingModel from './components/IsingModel'
+import SpinModelSimulator from './components/SpinModelSimulator'
 import './App.css'
 
 function App() {
   return (
     <div className="App">
-      <IsingModel />
+      <SpinModelSimulator />
     </div>
   )
 }
